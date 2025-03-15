@@ -2,6 +2,7 @@
 import credits.aleo;
 
 program aleo_multisig_v3.aleo {
+    
     const MAX_OWNERS:u8 = 8u8;
     const ZERO_ADDRESS:address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
@@ -12,26 +13,39 @@ program aleo_multisig_v3.aleo {
         threshold: u8,
     }
 
-    record TransferSigner {
+    record ConfirmTransferTicket {
         owner: address,
         wallet_address: address,
+        to: address,
+        amount: u64,
         transfer_id: field,
     }
 
-    struct Transfer {
-        to: address, // hash_to_field(hash_to_field(to) + transfer_id): obfuscated address, not the actual address
+    record ExecuteTransferTicket {
+        owner: address,
+        wallet_address: address,
+        to: address,
         amount: u64,
+        transfer_id: field,
+    }
+
+
+    struct TransferStatus {
         confirmations: u8,
     }
 
     // hash_to_field(wallet_address) => u64;
     mapping balances: field => u64;
     // hash_to_field(hash_to_field(wallet_address) + transfer_id) => Transfer;
-    mapping transfers: field => Transfer;
+    mapping transfers_status: field => TransferStatus;
 
     // // if actual owners is less then MAX_OWNERS, then the rest of the owners are set to ZERO_ADDRESS
     async transition create_wallet(wallet_address: address, owners: [address; 8], threshold: u8) -> (Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Future) {
-        assert_eq(threshold <= MAX_OWNERS && threshold >= 1u8, true);
+        let non_zero_owners: u8 = 0u8;
+        for i:u8 in 0u8..MAX_OWNERS {
+           non_zero_owners += (owners[i] != ZERO_ADDRESS ? 1u8 : 0u8);
+        }
+        assert_eq(threshold <= non_zero_owners && threshold >= 1u8, true);
         
         let wallet_record_1: Wallet = Wallet {
             owner: owners[0u8],
@@ -126,64 +140,74 @@ program aleo_multisig_v3.aleo {
         transfer_function.await();
     }
 
-    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, Future) {
-        let transfer_signer_1: TransferSigner = TransferSigner {
+    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, Future) {
+        let confirm_transfer_ticket_1: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[0u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_2: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_2: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[1u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_3: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_3: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[2u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_4: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_4: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[3u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_5: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_5: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[4u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_6: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_6: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[5u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_7: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_7: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[6u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_8: TransferSigner = TransferSigner {
+        let confirm_transfer_ticket_8: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owners[7u8],
             wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
             transfer_id: transfer_id,
         };
-
-        let transfer_id_hashed_to_field: field = BHP256::hash_to_field(transfer_id);
 
         // to prevent non-owners call execute_transfer: we need to link the transfer to the wallet by hashing the wallet_address and the transfer_id together and use it as a key in the transfers mapping
         let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet.wallet_address);
-        let mapping_transfers_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + transfer_id_hashed_to_field);
-
-        // obfuscate the to address by hashing it with the transfer_id
-        let to_address_hashed_to_field: field = BHP256::hash_to_field(to);
-        let to_address_obfuscated: address = BHP256::hash_to_address(to_address_hashed_to_field + transfer_id_hashed_to_field);
+        let transfer_status_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(transfer_id));
 
         let new_wallet: Wallet = Wallet {
             owner: wallet.owner,
@@ -192,68 +216,74 @@ program aleo_multisig_v3.aleo {
             threshold: wallet.threshold,
         };
 
-        return (new_wallet, transfer_signer_1, transfer_signer_2, transfer_signer_3, transfer_signer_4, transfer_signer_5, transfer_signer_6, transfer_signer_7, transfer_signer_8, finalize_create_transfer(wallet_address_hashed_to_field, mapping_transfers_key, to_address_obfuscated, amount));
+        return (new_wallet, confirm_transfer_ticket_1, confirm_transfer_ticket_2, confirm_transfer_ticket_3, confirm_transfer_ticket_4, confirm_transfer_ticket_5, confirm_transfer_ticket_6, confirm_transfer_ticket_7, confirm_transfer_ticket_8, finalize_create_transfer(wallet_address_hashed_to_field, transfer_status_key, amount));
     }
 
-    async function finalize_create_transfer(wallet_address_hashed_to_field: field, mapping_transfers_key: field, to_address_obfuscated: address, amount: u64) {
+    async function finalize_create_transfer(wallet_address_hashed_to_field: field, transfer_status_key: field, amount: u64) {
         let current_balance: u64 = Mapping::get(balances, wallet_address_hashed_to_field);
         assert_eq(current_balance >= amount, true);
-        assert_eq(Mapping::contains(transfers, mapping_transfers_key), false);
+        assert_eq(Mapping::contains(transfers_status, transfer_status_key), false);
 
-        let transfer: Transfer = Transfer {
-            to: to_address_obfuscated,
-            amount: amount,
+        let transfer_status: TransferStatus = TransferStatus {
             confirmations: 0u8,
         };
-        Mapping::set(transfers, mapping_transfers_key, transfer);
+        Mapping::set(transfers_status, transfer_status_key, transfer_status);
     }
     
 
-    async transition confirm_transfer(transfer_signer: TransferSigner) -> Future {
-        let wallet_address_hashed_to_field: field = BHP256::hash_to_field(transfer_signer.wallet_address);
-        let mapping_transfers_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(transfer_signer.transfer_id));
-        return finalize_confirm_transfer(mapping_transfers_key);
+    async transition confirm_transfer(confirm_transfer_ticket: ConfirmTransferTicket) -> (ExecuteTransferTicket, Future) {
+        let execute_transfer_ticket: ExecuteTransferTicket = ExecuteTransferTicket {
+            owner: confirm_transfer_ticket.owner,
+            wallet_address: confirm_transfer_ticket.wallet_address,
+            to: confirm_transfer_ticket.to,
+            amount: confirm_transfer_ticket.amount,
+            transfer_id: confirm_transfer_ticket.transfer_id,
+        };
+        return (execute_transfer_ticket, finalize_confirm_transfer(get_transfer_status_key(confirm_transfer_ticket.wallet_address, confirm_transfer_ticket.transfer_id)));
     }
 
-    async function finalize_confirm_transfer(mapping_transfers_key: field) {
-        let transfer: Transfer = Mapping::get(transfers, mapping_transfers_key);
-        Mapping::set(transfers, mapping_transfers_key, Transfer {
-            to: transfer.to,
-            amount: transfer.amount,
-            confirmations: transfer.confirmations + 1u8,
+    async function finalize_confirm_transfer(transfer_status_key: field) {
+        let transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_status_key);
+        Mapping::set(transfers_status, transfer_status_key, TransferStatus {
+            confirmations: transfer_status.confirmations + 1u8,
         });
     }
 
-    async transition execute_transfer(wallet: Wallet, transfer: Transfer, to: address, transfer_id: field) -> (credits.aleo/credits, Wallet, Future) {
-        // we will check if the transfer is legit later in finalize_execute_transfer
-        assert_eq(transfer.confirmations >= wallet.threshold, true);
+    async transition execute_transfer(wallet: Wallet, execute_transfer_ticket: ExecuteTransferTicket) -> (Wallet, credits.aleo/credits, Future) {
+        assert_eq(wallet.wallet_address, execute_transfer_ticket.wallet_address);
         let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet.wallet_address);
-        let mapping_transfers_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(transfer_id));
+        let transfer_status_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(execute_transfer_ticket.transfer_id));
 
-        let (receiver_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_public_to_private(to, transfer.amount);
+        let (receiver_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_public_to_private(execute_transfer_ticket.to, execute_transfer_ticket.amount);
         let new_wallet: Wallet = Wallet {
             owner: wallet.owner,
             wallet_address: wallet.wallet_address,
             owners: wallet.owners,
             threshold: wallet.threshold,
         };
-        return (receiver_credits, new_wallet, finalize_execute_transfer(wallet_address_hashed_to_field, mapping_transfers_key, transfer, transfer_function));
+        return (new_wallet, receiver_credits, finalize_execute_transfer(wallet_address_hashed_to_field, transfer_status_key, wallet.threshold, execute_transfer_ticket.amount, transfer_function));
     }
 
-    async function finalize_execute_transfer(wallet_address_hashed_to_field: field, mapping_transfers_key: field, transfer: Transfer, transfer_function: Future) {
+    async function finalize_execute_transfer(wallet_address_hashed_to_field: field, transfer_status_key: field, threshold: u8, amount: u64, transfer_function: Future) {
         // make sure offchain transfer is the same as onchain transfer
-        let onchain_transfer: Transfer = Mapping::get(transfers, mapping_transfers_key);
-        assert_eq(transfer, onchain_transfer);
+        let onchain_transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_status_key);
+        assert_eq(onchain_transfer_status.confirmations >= threshold, true);
 
         // check if the wallet has enough balance
         let current_balance: u64 = Mapping::get(balances, wallet_address_hashed_to_field);
-        assert_eq(current_balance >= transfer.amount, true);
+        assert_eq(current_balance >= amount, true);
 
         // set the new balance
-        let new_balance: u64 = current_balance - transfer.amount;
+        let new_balance: u64 = current_balance - amount;
         Mapping::set(balances, wallet_address_hashed_to_field, new_balance);
 
-        Mapping::remove(transfers, mapping_transfers_key);
+        Mapping::remove(transfers_status, transfer_status_key);
         transfer_function.await();
+    }
+
+    function get_transfer_status_key(wallet_address: address, transfer_id: field) -> field {
+        let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet_address);
+        let transfer_id_hashed_to_field: field = BHP256::hash_to_field(transfer_id);
+        return BHP256::hash_to_field(wallet_address_hashed_to_field + transfer_id_hashed_to_field);
     }
 }

@@ -2,13 +2,13 @@
 import credits.aleo;
 
 program aleo_multisig_v3.aleo {
-    const MAX_OWNERS:u8 = 14u8;
+    const MAX_OWNERS:u8 = 8u8;
     const ZERO_ADDRESS:address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
 
     record Wallet {
         owner: address,
         wallet_address: address,
-        owners: [address; 14],
+        owners: [address; 8],
         threshold: u8,
     }
 
@@ -29,8 +29,8 @@ program aleo_multisig_v3.aleo {
     // hash_to_field(hash_to_field(wallet_address) + transfer_id) => Transfer;
     mapping transfers: field => Transfer;
 
-    // if actual owners is less then MAX_OWNERS, then the rest of the owners are set to ZERO_ADDRESS
-    async transition create_wallet(wallet_address: address, owners: [address; 14], threshold: u8) -> (Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Future) {
+    // // if actual owners is less then MAX_OWNERS, then the rest of the owners are set to ZERO_ADDRESS
+    async transition create_wallet(wallet_address: address, owners: [address; 8], threshold: u8) -> (Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Wallet, Future) {
         assert_eq(threshold <= MAX_OWNERS && threshold >= 1u8, true);
         
         let wallet_record_1: Wallet = Wallet {
@@ -89,50 +89,8 @@ program aleo_multisig_v3.aleo {
             threshold: threshold,
         };
 
-        let wallet_record_9: Wallet = Wallet {
-            owner: owners[8u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_record_10: Wallet = Wallet {
-            owner: owners[9u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_record_11: Wallet = Wallet {
-            owner: owners[10u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_record_12: Wallet = Wallet {
-            owner: owners[11u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_record_13: Wallet = Wallet {
-            owner: owners[12u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_record_14: Wallet = Wallet {
-            owner: owners[13u8],
-            wallet_address: wallet_address,
-            owners: owners,
-            threshold: threshold,
-        };
-
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(wallet_address);
-        return (wallet_record_1, wallet_record_2, wallet_record_3, wallet_record_4, wallet_record_5, wallet_record_6, wallet_record_7, wallet_record_8, wallet_record_9, wallet_record_10, wallet_record_11, wallet_record_12, wallet_record_13, wallet_record_14, finalize_create_wallet(wallet_address_hashed_to_field));
+        let wallet_address_hashed_to_field: field = hash_address_to_field(wallet_address);
+        return (wallet_record_1, wallet_record_2, wallet_record_3, wallet_record_4, wallet_record_5, wallet_record_6, wallet_record_7, wallet_record_8, finalize_create_wallet(wallet_address_hashed_to_field));
     }
 
     async function finalize_create_wallet(wallet_address_hashed_to_field: field) {
@@ -142,7 +100,7 @@ program aleo_multisig_v3.aleo {
 
     // use this function with caution, it will reveal who deposited the funds
     async transition deposit_public(wallet_address: address, amount: u64) -> Future {
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(wallet_address);
+        let wallet_address_hashed_to_field: field = hash_address_to_field(wallet_address);
         return finalize_deposit_public(wallet_address_hashed_to_field, amount, credits.aleo/transfer_public_as_signer(self.address, amount));
     }
 
@@ -155,7 +113,7 @@ program aleo_multisig_v3.aleo {
     }
 
     async transition deposit_private(wallet_address: address, amount: u64, credits: credits.aleo/credits) -> (credits.aleo/credits, Future) {
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(wallet_address);
+        let wallet_address_hashed_to_field: field = hash_address_to_field(wallet_address);
         let (remaining_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_private_to_public(credits, self.address, amount);
         return (remaining_credits, finalize_deposit_private(wallet_address_hashed_to_field, amount, transfer_function));
     }
@@ -168,7 +126,7 @@ program aleo_multisig_v3.aleo {
         transfer_function.await();
     }
 
-    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, Future) {
+    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, TransferSigner, Future) {
         let transfer_signer_1: TransferSigner = TransferSigner {
             owner: wallet.owners[0u8],
             wallet_address: wallet.wallet_address,
@@ -217,51 +175,17 @@ program aleo_multisig_v3.aleo {
             transfer_id: transfer_id,
         };
 
-        let transfer_signer_9: TransferSigner = TransferSigner {
-            owner: wallet.owners[8u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
-
-        let transfer_signer_10: TransferSigner = TransferSigner {
-            owner: wallet.owners[9u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
-
-        let transfer_signer_11: TransferSigner = TransferSigner {
-            owner: wallet.owners[10u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
-
-        let transfer_signer_12: TransferSigner = TransferSigner {
-            owner: wallet.owners[11u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
-
-        let transfer_signer_13: TransferSigner = TransferSigner {
-            owner: wallet.owners[12u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
-
-        let transfer_signer_14: TransferSigner = TransferSigner {
-            owner: wallet.owners[13u8],
-            wallet_address: wallet.wallet_address,
-            transfer_id: transfer_id,
-        };
+        let transfer_id_hashed_to_field: field = hash_field_to_field(transfer_id);
 
         // to prevent non-owners call execute_transfer: we need to link the transfer to the wallet by hashing the wallet_address and the transfer_id together and use it as a key in the transfers mapping
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(wallet.wallet_address);
-        let mapping_transfers_key: field = Keccak256::hash_to_field(wallet_address_hashed_to_field + Keccak256::hash_to_field(transfer_id));
+        let wallet_address_hashed_to_field: field = hash_address_to_field(wallet.wallet_address);
+        let mapping_transfers_key: field = hash_field_to_field(wallet_address_hashed_to_field + transfer_id_hashed_to_field);
 
         // obfuscate the to address by hashing it with the transfer_id
-        let to_address_hashed_to_field: field = Keccak256::hash_to_field(to);
-        let to_address_obfuscated: address = Keccak256::hash_to_address(to_address_hashed_to_field + Keccak256::hash_to_field(transfer_id));
+        let to_address_hashed_to_field: field = hash_address_to_field(to);
+        let to_address_obfuscated: address = hash_field_to_address(to_address_hashed_to_field + transfer_id_hashed_to_field);
 
-        return (wallet, transfer_signer_1, transfer_signer_2, transfer_signer_3, transfer_signer_4, transfer_signer_5, transfer_signer_6, transfer_signer_7, transfer_signer_8, transfer_signer_9, transfer_signer_10, transfer_signer_11, transfer_signer_12, transfer_signer_13, transfer_signer_14, finalize_create_transfer(wallet_address_hashed_to_field, mapping_transfers_key, to_address_obfuscated, amount));
+        return (wallet, transfer_signer_1, transfer_signer_2, transfer_signer_3, transfer_signer_4, transfer_signer_5, transfer_signer_6, transfer_signer_7, transfer_signer_8, finalize_create_transfer(wallet_address_hashed_to_field, mapping_transfers_key, to_address_obfuscated, amount));
     }
 
     async function finalize_create_transfer(wallet_address_hashed_to_field: field, mapping_transfers_key: field, to_address_obfuscated: address, amount: u64) {
@@ -279,8 +203,8 @@ program aleo_multisig_v3.aleo {
     
 
     async transition confirm_transfer(transfer_signer: TransferSigner) -> Future {
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(transfer_signer.wallet_address);
-        let mapping_transfers_key: field = Keccak256::hash_to_field(wallet_address_hashed_to_field + Keccak256::hash_to_field(transfer_signer.transfer_id));
+        let wallet_address_hashed_to_field: field = hash_address_to_field(transfer_signer.wallet_address);
+        let mapping_transfers_key: field = hash_field_to_field(wallet_address_hashed_to_field + hash_field_to_field(transfer_signer.transfer_id));
         return finalize_confirm_transfer(mapping_transfers_key);
     }
 
@@ -296,8 +220,8 @@ program aleo_multisig_v3.aleo {
     async transition execute_transfer(wallet: Wallet, transfer: Transfer, to: address, transfer_id: field) -> (credits.aleo/credits, Wallet, Future) {
         // we will check if the transfer is legit later in finalize_execute_transfer
         assert_eq(transfer.confirmations >= wallet.threshold, true);
-        let wallet_address_hashed_to_field: field = Keccak256::hash_to_field(wallet.wallet_address);
-        let mapping_transfers_key: field = Keccak256::hash_to_field(wallet_address_hashed_to_field + Keccak256::hash_to_field(transfer_id));
+        let wallet_address_hashed_to_field: field = hash_address_to_field(wallet.wallet_address);
+        let mapping_transfers_key: field = hash_field_to_field(wallet_address_hashed_to_field + hash_field_to_field(transfer_id));
 
         let (receiver_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_public_to_private(to, transfer.amount);
         return (receiver_credits, wallet, finalize_execute_transfer(wallet_address_hashed_to_field, mapping_transfers_key, transfer, transfer_function));
@@ -318,5 +242,17 @@ program aleo_multisig_v3.aleo {
 
         Mapping::remove(transfers, mapping_transfers_key);
         transfer_function.await();
+    }
+
+    function hash_address_to_field(input: address) -> field {
+        return BHP256::hash_to_field(input);
+    }
+
+    function hash_field_to_address(input: field) -> address {
+        return BHP256::hash_to_address(input);
+    }
+
+    function hash_field_to_field(input: field) -> field {
+        return BHP256::hash_to_field(input);
     }
 }

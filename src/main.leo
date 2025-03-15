@@ -185,7 +185,14 @@ program aleo_multisig_v3.aleo {
         let to_address_hashed_to_field: field = BHP256::hash_to_field(to);
         let to_address_obfuscated: address = BHP256::hash_to_address(to_address_hashed_to_field + transfer_id_hashed_to_field);
 
-        return (wallet, transfer_signer_1, transfer_signer_2, transfer_signer_3, transfer_signer_4, transfer_signer_5, transfer_signer_6, transfer_signer_7, transfer_signer_8, finalize_create_transfer(wallet_address_hashed_to_field, mapping_transfers_key, to_address_obfuscated, amount));
+        let new_wallet: Wallet = Wallet {
+            owner: wallet.owner,
+            wallet_address: wallet.wallet_address,
+            owners: wallet.owners,
+            threshold: wallet.threshold,
+        };
+
+        return (new_wallet, transfer_signer_1, transfer_signer_2, transfer_signer_3, transfer_signer_4, transfer_signer_5, transfer_signer_6, transfer_signer_7, transfer_signer_8, finalize_create_transfer(wallet_address_hashed_to_field, mapping_transfers_key, to_address_obfuscated, amount));
     }
 
     async function finalize_create_transfer(wallet_address_hashed_to_field: field, mapping_transfers_key: field, to_address_obfuscated: address, amount: u64) {
@@ -224,7 +231,13 @@ program aleo_multisig_v3.aleo {
         let mapping_transfers_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(transfer_id));
 
         let (receiver_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_public_to_private(to, transfer.amount);
-        return (receiver_credits, wallet, finalize_execute_transfer(wallet_address_hashed_to_field, mapping_transfers_key, transfer, transfer_function));
+        let new_wallet: Wallet = Wallet {
+            owner: wallet.owner,
+            wallet_address: wallet.wallet_address,
+            owners: wallet.owners,
+            threshold: wallet.threshold,
+        };
+        return (receiver_credits, new_wallet, finalize_execute_transfer(wallet_address_hashed_to_field, mapping_transfers_key, transfer, transfer_function));
     }
 
     async function finalize_execute_transfer(wallet_address_hashed_to_field: field, mapping_transfers_key: field, transfer: Transfer, transfer_function: Future) {

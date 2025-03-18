@@ -1,7 +1,32 @@
-// The 'aleo_multisig_v2' program.
+/**
+ * SPDX-License-Identifier: MIT
+ *
+ * This software is licensed under the MIT License.  
+ *  
+ * Copyright (c) [2025] [ZeroSecure]  
+ *  
+ * Permission is hereby granted, free of charge, to any person obtaining a copy  
+ * of this software and associated documentation files (the "Software"), to deal  
+ * in the Software without restriction, including without limitation the rights  
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+ * copies of the Software, and to permit persons to whom the Software is  
+ * furnished to do so, subject to the following conditions:  
+ *  
+ * The above copyright notice and this permission notice shall be included in all  
+ * copies or substantial portions of the Software.  
+ *  
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+ * FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER  
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM,  
+ * OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+ * THE SOFTWARE.  
+ */
+
 import credits.aleo;
 
-program aleo_multisig_v3.aleo {
+program zerosecure.aleo {
     
     const MAX_OWNERS:u8 = 8u8;
     const ZERO_ADDRESS:address = aleo1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq3ljyzc;
@@ -142,7 +167,7 @@ program aleo_multisig_v3.aleo {
 
     async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, Future) {
         let confirm_transfer_ticket_1: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[0u8],
+            owner: wallet.owner == wallet.owners[0u8] ? ZERO_ADDRESS : wallet.owners[0u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -150,7 +175,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_2: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[1u8],
+            owner: wallet.owner == wallet.owners[1u8] ? ZERO_ADDRESS : wallet.owners[1u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -158,7 +183,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_3: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[2u8],
+            owner: wallet.owner == wallet.owners[2u8] ? ZERO_ADDRESS : wallet.owners[2u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -166,7 +191,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_4: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[3u8],
+            owner: wallet.owner == wallet.owners[3u8] ? ZERO_ADDRESS : wallet.owners[3u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -174,7 +199,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_5: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[4u8],
+            owner: wallet.owner == wallet.owners[4u8] ? ZERO_ADDRESS : wallet.owners[4u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -182,7 +207,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_6: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[5u8],
+            owner: wallet.owner == wallet.owners[5u8] ? ZERO_ADDRESS : wallet.owners[5u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -190,7 +215,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_7: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[6u8],
+            owner: wallet.owner == wallet.owners[6u8] ? ZERO_ADDRESS : wallet.owners[6u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -198,7 +223,7 @@ program aleo_multisig_v3.aleo {
         };
 
         let confirm_transfer_ticket_8: ConfirmTransferTicket = ConfirmTransferTicket {
-            owner: wallet.owners[7u8],
+            owner: wallet.owner == wallet.owners[7u8] ? ZERO_ADDRESS : wallet.owners[7u8],
             wallet_address: wallet.wallet_address,
             to: to,
             amount: amount,
@@ -225,7 +250,7 @@ program aleo_multisig_v3.aleo {
         assert_eq(Mapping::contains(transfers_status, transfer_status_key), false);
 
         let transfer_status: TransferStatus = TransferStatus {
-            confirmations: 0u8,
+            confirmations: 1u8,
         };
         Mapping::set(transfers_status, transfer_status_key, transfer_status);
     }

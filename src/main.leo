@@ -167,7 +167,7 @@ program zerosecure.aleo {
         transfer_function.await();
     }
 
-    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, Future) {
+    async transition create_transfer(wallet: Wallet, to: address, amount: u64, transfer_id: field) -> (Wallet, ExecuteTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, ConfirmTransferTicket, Future) {
         let confirm_transfer_ticket_1: ConfirmTransferTicket = ConfirmTransferTicket {
             owner: wallet.owner == wallet.owners[0u8] ? ZERO_ADDRESS : wallet.owners[0u8],
             wallet_address: wallet.wallet_address,
@@ -240,6 +240,15 @@ program zerosecure.aleo {
             threshold: wallet.threshold,
         };
 
+        let execute_transfer_ticket: ExecuteTransferTicket = ExecuteTransferTicket {
+            owner: wallet.owner,
+            wallet_address: wallet.wallet_address,
+            to: to,
+            amount: amount,
+            transfer_id: transfer_id,
+            threshold: wallet.threshold,
+        };
+
         let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet.wallet_address);
         let new_wallet: Wallet = Wallet {
             owner: wallet.owner,
@@ -248,7 +257,7 @@ program zerosecure.aleo {
             threshold: wallet.threshold,
         };
 
-        return (new_wallet, confirm_transfer_ticket_1, confirm_transfer_ticket_2, confirm_transfer_ticket_3, confirm_transfer_ticket_4, confirm_transfer_ticket_5, confirm_transfer_ticket_6, confirm_transfer_ticket_7, confirm_transfer_ticket_8, finalize_create_transfer(wallet_address_hashed_to_field, transfer_id, amount));
+        return (new_wallet, execute_transfer_ticket, confirm_transfer_ticket_1, confirm_transfer_ticket_2, confirm_transfer_ticket_3, confirm_transfer_ticket_4, confirm_transfer_ticket_5, confirm_transfer_ticket_6, confirm_transfer_ticket_7, confirm_transfer_ticket_8, finalize_create_transfer(wallet_address_hashed_to_field, transfer_id, amount));
     }
 
     async function finalize_create_transfer(wallet_address_hashed_to_field: field, transfer_id: field, amount: u64) {

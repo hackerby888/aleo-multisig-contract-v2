@@ -44,6 +44,7 @@ program zerosecure.aleo {
         to: address,
         amount: u64,
         transfer_id: field,
+        threshold: u8,
     }
 
     record ExecuteTransferTicket {
@@ -52,6 +53,7 @@ program zerosecure.aleo {
         to: address,
         amount: u64,
         transfer_id: field,
+        threshold: u8,
     }
 
 
@@ -61,7 +63,7 @@ program zerosecure.aleo {
 
     // hash_to_field(wallet_address) => u64;
     mapping balances: field => u64;
-    // hash_to_field(hash_to_field(wallet_address) + transfer_id) => Transfer;
+    // transfer_id => Transfer;
     mapping transfers_status: field => TransferStatus;
 
     // // if actual owners is less then MAX_OWNERS, then the rest of the owners are set to ZERO_ADDRESS
@@ -172,6 +174,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_2: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -180,6 +183,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_3: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -188,6 +192,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_4: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -196,6 +201,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_5: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -204,6 +210,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_6: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -212,6 +219,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_7: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -220,6 +228,7 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
         let confirm_transfer_ticket_8: ConfirmTransferTicket = ConfirmTransferTicket {
@@ -228,11 +237,10 @@ program zerosecure.aleo {
             to: to,
             amount: amount,
             transfer_id: transfer_id,
+            threshold: wallet.threshold,
         };
 
-        // to prevent non-owners call execute_transfer: we need to link the transfer to the wallet by hashing the wallet_address and the transfer_id together and use it as a key in the transfers mapping
         let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet.wallet_address);
-        let transfer_status_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(transfer_id));
 
         let new_wallet: Wallet = Wallet {
             owner: wallet.owner,
@@ -241,18 +249,18 @@ program zerosecure.aleo {
             threshold: wallet.threshold,
         };
 
-        return (new_wallet, confirm_transfer_ticket_1, confirm_transfer_ticket_2, confirm_transfer_ticket_3, confirm_transfer_ticket_4, confirm_transfer_ticket_5, confirm_transfer_ticket_6, confirm_transfer_ticket_7, confirm_transfer_ticket_8, finalize_create_transfer(wallet_address_hashed_to_field, transfer_status_key, amount));
+        return (new_wallet, confirm_transfer_ticket_1, confirm_transfer_ticket_2, confirm_transfer_ticket_3, confirm_transfer_ticket_4, confirm_transfer_ticket_5, confirm_transfer_ticket_6, confirm_transfer_ticket_7, confirm_transfer_ticket_8, finalize_create_transfer(wallet_address_hashed_to_field, transfer_id, amount));
     }
 
-    async function finalize_create_transfer(wallet_address_hashed_to_field: field, transfer_status_key: field, amount: u64) {
+    async function finalize_create_transfer(wallet_address_hashed_to_field: field, transfer_id: field, amount: u64) {
         let current_balance: u64 = Mapping::get(balances, wallet_address_hashed_to_field);
         assert_eq(current_balance >= amount, true);
-        assert_eq(Mapping::contains(transfers_status, transfer_status_key), false);
+        assert_eq(Mapping::contains(transfers_status, transfer_id), false);
 
         let transfer_status: TransferStatus = TransferStatus {
             confirmations: 1u8,
         };
-        Mapping::set(transfers_status, transfer_status_key, transfer_status);
+        Mapping::set(transfers_status, transfer_id, transfer_status);
     }
     
 
@@ -263,35 +271,28 @@ program zerosecure.aleo {
             to: confirm_transfer_ticket.to,
             amount: confirm_transfer_ticket.amount,
             transfer_id: confirm_transfer_ticket.transfer_id,
+            threshold: confirm_transfer_ticket.threshold,
         };
-        return (execute_transfer_ticket, finalize_confirm_transfer(get_transfer_status_key(confirm_transfer_ticket.wallet_address, confirm_transfer_ticket.transfer_id)));
+        return (execute_transfer_ticket, finalize_confirm_transfer(confirm_transfer_ticket.transfer_id));
     }
 
-    async function finalize_confirm_transfer(transfer_status_key: field) {
-        let transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_status_key);
-        Mapping::set(transfers_status, transfer_status_key, TransferStatus {
+    async function finalize_confirm_transfer(transfer_id: field) {
+        let transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_id);
+        Mapping::set(transfers_status, transfer_id, TransferStatus {
             confirmations: transfer_status.confirmations + 1u8,
         });
     }
 
-    async transition execute_transfer(wallet: Wallet, execute_transfer_ticket: ExecuteTransferTicket) -> (Wallet, credits.aleo/credits, Future) {
-        assert_eq(wallet.wallet_address, execute_transfer_ticket.wallet_address);
-        let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet.wallet_address);
-        let transfer_status_key: field = BHP256::hash_to_field(wallet_address_hashed_to_field + BHP256::hash_to_field(execute_transfer_ticket.transfer_id));
+    async transition execute_transfer(execute_transfer_ticket: ExecuteTransferTicket) -> (credits.aleo/credits, Future) {
+        let wallet_address_hashed_to_field: field = BHP256::hash_to_field(execute_transfer_ticket.wallet_address);
 
         let (receiver_credits, transfer_function): (credits.aleo/credits, Future) = credits.aleo/transfer_public_to_private(execute_transfer_ticket.to, execute_transfer_ticket.amount);
-        let new_wallet: Wallet = Wallet {
-            owner: wallet.owner,
-            wallet_address: wallet.wallet_address,
-            owners: wallet.owners,
-            threshold: wallet.threshold,
-        };
-        return (new_wallet, receiver_credits, finalize_execute_transfer(wallet_address_hashed_to_field, transfer_status_key, wallet.threshold, execute_transfer_ticket.amount, transfer_function));
+        return (receiver_credits, finalize_execute_transfer(wallet_address_hashed_to_field, execute_transfer_ticket.transfer_id, execute_transfer_ticket.threshold, execute_transfer_ticket.amount, transfer_function));
     }
 
-    async function finalize_execute_transfer(wallet_address_hashed_to_field: field, transfer_status_key: field, threshold: u8, amount: u64, transfer_function: Future) {
+    async function finalize_execute_transfer(wallet_address_hashed_to_field: field, transfer_id: field, threshold: u8, amount: u64, transfer_function: Future) {
         // make sure offchain transfer is the same as onchain transfer
-        let onchain_transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_status_key);
+        let onchain_transfer_status: TransferStatus = Mapping::get(transfers_status, transfer_id);
         assert_eq(onchain_transfer_status.confirmations >= threshold, true);
 
         // check if the wallet has enough balance
@@ -302,13 +303,7 @@ program zerosecure.aleo {
         let new_balance: u64 = current_balance - amount;
         Mapping::set(balances, wallet_address_hashed_to_field, new_balance);
 
-        Mapping::remove(transfers_status, transfer_status_key);
+        Mapping::remove(transfers_status, transfer_id);
         transfer_function.await();
-    }
-
-    function get_transfer_status_key(wallet_address: address, transfer_id: field) -> field {
-        let wallet_address_hashed_to_field: field = BHP256::hash_to_field(wallet_address);
-        let transfer_id_hashed_to_field: field = BHP256::hash_to_field(transfer_id);
-        return BHP256::hash_to_field(wallet_address_hashed_to_field + transfer_id_hashed_to_field);
     }
 }
